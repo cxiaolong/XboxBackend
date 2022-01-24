@@ -4,6 +4,8 @@ from werkzeug.serving import WSGIRequestHandler
 from login import login_bp
 from profile import profile_bp
 from register import register_bp
+from box import box_bp
+from vpn import vpn_bp
 from setting import config_dict
 
 
@@ -25,6 +27,8 @@ app = create_flask_app(config_dict.get('dev_config'))
 app.register_blueprint(login_bp)
 app.register_blueprint(profile_bp)
 app.register_blueprint(register_bp)
+app.register_blueprint(box_bp)
+app.register_blueprint(vpn_bp)
 
 if __name__ == '__main__':
     WSGIRequestHandler.protocol_version = "HTTP/1.1"

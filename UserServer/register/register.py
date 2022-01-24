@@ -9,6 +9,8 @@ from celery_tasks.sms.tasks import send_sms_code
 from celery_tasks.email_active.tasts import send_email_active
 from . import register_bp
 from dao.user_dao import UserDao
+from dao.group_dao import GroupDao
+from dao.vpn1_dao import VPN1Dao
 
 
 # 测试
@@ -23,14 +25,15 @@ def user_register():
     用户注册
     :return:
     """
-    username = request.form.get("username")
-    password = request.form.get("password")
-    password_repeat = request.form.get("password_repeat")
-    mobile = request.form.get("mobile")
-    email = request.form.get("email")
-    verify_code = request.form.get("verify_code")
+    mobile = request.get_json().get("mobile")
+    email = request.get_json().get("email")
+    password = request.get_json().get("password")
+    # password_repeat = request.form.get("password_repeat")
 
-    if not all([username, password, password_repeat, mobile]):
+    username = mobile or email
+    verify_code = request.get_json("verify_code")
+
+    if not all([username, password], verify_code):
         return jsonify(msg='缺少必传参数'), 403
         # 判断用户名是否是2-20个字符
     if not re.match(r'^[a-zA-Z0-9_-]{2,20}$', username):
@@ -38,15 +41,19 @@ def user_register():
         # 判断密码是否是8-20个数字
     if not re.match(r'^[0-9A-Za-z]{8,20}$', password):
         return jsonify(msg='请输入8-20位的密码'), 403
-        # 判断两次密码是否一致
-    if password != password_repeat:
-        return jsonify(msg='两次输入的密码不一致'), 403
+    #     # 判断两次密码是否一致
+    # if password != password_repeat:
+    #     return jsonify(msg='两次输入的密码不一致'), 403
         # 判断手机号是否合法
     if not re.match(r'^1[3-9]\d{9}$', mobile):
         return jsonify(msg='请输入正确的手机号码'), 403
     # 判断手机号是否已经存在
     # if User.objects.filter(mobile=mobile).count() > 0:
     #     return http.HttpResponseForbidden('手机号存在')
+    user_dao = UserDao()
+    user = user_dao.find_by_mobile(mobile=mobile)
+    if user:
+        return jsonify(msg='手机号存在'), 403
 
     redis_conn = redis.StrictRedis(host=config_dict['dev_config'].REDIS_URL, port=config_dict['dev_config'].REDIS_PORT)
     verify_code_server = redis_conn.get('sms_%s' % mobile) or redis_conn.get("email_%s" % email)
@@ -55,14 +62,25 @@ def user_register():
         return jsonify(msg='短信验证码已失效'), 403
     if verify_code_server != verify_code:
         return jsonify(msg="注册失败")
-    # TODO 注册逻辑数据库的业务
+
+    # 注册逻辑数据库的业务
+    # 1.用户表插入用户数据
     user_dao = UserDao()
     try:
         user_dao.create_user(username=username, password=password, mobile=mobile, email=email)
     except Exception as e:
         print(e)
-        return jsonify(msg='服务器故障'), 500
+        return jsonify(msg='database create user error'), 500
+    # 2.生成默认分组表业务
+    group_dao = GroupDao()
+    group_dao.create_group_table(username=username)
+    # 3.在默认分组表中插入一个默认分组
+    group_dao.create_group(username=username, group_name="默认分组")
+    # TODO 执行脚本生成VPN1证书/root/OpenVPN
 
+    # -- 在这里写入执行脚本文件代码
+    # vpn1_dao = VPN1Dao()
+    # vpn1_dao.create_vpn1_table(username, nums=nums)
     # TODO 状态保持
 
     return jsonify(msg='OK'), 200

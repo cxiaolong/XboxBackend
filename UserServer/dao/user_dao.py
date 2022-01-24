@@ -72,7 +72,7 @@ class UserDao(BaseDao):
     def create_user(self, username, password, mobile, email):
         try:
             with self.conn.cursor() as cursor:
-                sql = 'insert into users values(username=%s, password=%s, moble=%s, email=%s)'
+                sql = 'insert into users(username, password, mobile, email) values(%s, %s, %s, %s)'
                 cursor.excute(sql, (username, password, mobile, email))
         except Exception as e:
             print(e)

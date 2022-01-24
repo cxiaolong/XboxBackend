@@ -8,6 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+.idea
 *.DS_Store
 build/
 develop-eggs/
@@ -26,6 +27,7 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+__pycache__
 MANIFEST
 
 # PyInstaller
