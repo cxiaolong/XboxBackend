@@ -4,6 +4,7 @@ from flask import request
 from flask import send_from_directory
 
 from . import vpn_bp
+from utils.process_vpn_script import get_vpn1_virtual_ip
 
 
 # test
@@ -47,3 +48,23 @@ def get_certificate():
 
     response.headers['my-custom-header'] = 'my-custom-status-0'
     return response if response else ('error', 500)
+
+
+#  get the current box VPN1 virtual LAN IP address
+@vpn_bp.route('/ip1/', methods=["POST"])
+def get_vpn1_ip():
+    username = request.get_json().get('username')
+    password = request.get_json().get('password')
+
+    # TODO 验证用户名和密码的逻辑
+    if username != 'li188' or password != '123':
+        return jsonify(msg='用户名或密码错误'), 404
+
+    vpn1_certificate = "VPN1_{}_client_2".format(username)
+    # TODO 验证执行脚本是否正确
+    try:
+        vpn1_ip = get_vpn1_virtual_ip(vpn1_certificate)
+    except Exception as e:
+        print(e)
+        return 'Bad Request', 400
+    return vpn1_ip, 200

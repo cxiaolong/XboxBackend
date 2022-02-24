@@ -31,3 +31,10 @@ def clean_vpn_service(u):
     :return:
     """
     pass
+
+
+def get_vpn1_virtual_ip(certificate):
+    r = os.popen('/root/cxl/project/UserServer/utils/getIp.sh -k %s' % certificate)
+    vpn1_ip = r.read()
+    r.close()
+    return vpn1_ip
